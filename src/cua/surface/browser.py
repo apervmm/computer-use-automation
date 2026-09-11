@@ -13,7 +13,6 @@ class BrowserSession:
         self.page: Page = self.browser.new_page()
 
 
-
     # navigation
     def goto(self, url: str) -> ActionResult:
         start = time.time()
@@ -66,10 +65,16 @@ class BrowserSession:
         start = time.time()
         try:
             loc = self._resolve(ref)
-            loc.fill("")           
-            loc.fill(text)
-            return ActionResult(True, "type", description or ref.value,
-                                 duration_ms=int((time.time() - start) * 1000))
+            loc.fill("", timeout=5000)
+            loc.fill(text, timeout=5000)
+            
+            return ActionResult(
+                True, 
+                "type",
+                description or ref.value, 
+                duration_ms=int((time.time() - start) * 1000)
+            )
+        
         except Exception as e:
             return ActionResult(False, "type", description or ref.value, error=str(e))
 

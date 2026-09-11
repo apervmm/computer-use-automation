@@ -9,3 +9,4 @@ artifacts/*.json
 .pytest_cache/
 /config/*
 /scripts/*
+REPORT.md

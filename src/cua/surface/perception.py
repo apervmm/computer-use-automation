@@ -21,7 +21,7 @@ def snapshot(session: BrowserSession, screenshot_path: str | None = None) -> Pag
     elements: list[InteractiveElement] = []
     seen = set()
     for item in raw_elements:
-        role, name = item["role"], item["name"]
+        role, name, css = item["role"], item["name"], item["cssSelector"]
         key = (role, name)
         if key in seen:
             continue
@@ -29,9 +29,13 @@ def snapshot(session: BrowserSession, screenshot_path: str | None = None) -> Pag
 
         ref = ElementRef(
             strategy=LocatorStrategy.ROLE_NAME,
-            value=name,
+            value=css,
             role=role,
-            fallbacks=[ElementRef(strategy=LocatorStrategy.TEXT, value=name)],
+            fallbacks=[
+                ElementRef(strategy=LocatorStrategy.ROLE_NAME, value=name, role=role),
+                ElementRef(strategy=LocatorStrategy.TEXT, value=name),
+
+            ],
         )
         elements.append(InteractiveElement(
             ref=ref,

@@ -55,10 +55,32 @@
       }
       return 'other';
     };
+
+    const cssSelectorFor = (el) => {
+        if (el.id) return `#${CSS.escape(el.id)}`;
+        const name = el.getAttribute('name');
+        if (name) return `${el.tagName.toLowerCase()}[name="${CSS.escape(name)}"]`;
+      
+        const path = [];
+        let node = el;
+        while (node && node.nodeType === 1 && node !== document.body) {
+          let selector = node.tagName.toLowerCase();
+          const parent = node.parentElement;
+          if (parent) {
+            const siblings = Array.from(parent.children).filter(c => c.tagName === node.tagName);
+            if (siblings.length > 1) {
+              selector += `:nth-of-type(${siblings.indexOf(node) + 1})`;
+            }
+          }
+          path.unshift(selector);
+          node = parent;
+        }
+        return path.join(' > ');
+    };
   
     return Array.from(document.querySelectorAll('a, button, input, select'))
-      .filter(isVisible)
-      .filter(el => !hasStructuralChildren(el))
-      .map(el => ({ role: roleOf(el), name: (nameOf(el) || '').trim() }))
-      .filter(item => item.name);
+        .filter(isVisible)
+        .filter(el => !hasStructuralChildren(el))
+        .map(el => ({ role: roleOf(el), name: (nameOf(el) || '').trim(), cssSelector: cssSelectorFor(el) }))
+        .filter(item => item.name);
   })();

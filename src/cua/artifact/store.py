@@ -1,26 +1,53 @@
-import json
+import re
 from pathlib import Path
 from .schema import Capability
 
 ARTIFACT_DIR = Path("artifacts")
 
+_VALID_ID = re.compile(r"^[a-zA-Z0-9_.-]+$")
+
+
+def _validate_id(capability_id: str) -> None:
+    if not _VALID_ID.match(capability_id):
+        raise ValueError(
+            f"Invalid capability_id: {capability_id!r}. "
+            "Only letters, digits, '.', '_', '-' are allowed."
+        )
+
+
+def _safe_path(filename: str) -> Path:
+    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+    base = ARTIFACT_DIR.resolve()
+    candidate = (ARTIFACT_DIR / filename).resolve()
+    if not candidate.is_relative_to(base):
+        raise ValueError(f"Resolved path {candidate} escapes artifact directory.")
+    return candidate
+
 
 def save(capability: Capability) -> Path:
-    """
-    Saves as artifacts/<capability_id>.v<version>.json
-    """
-    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
-    path = ARTIFACT_DIR / f"{capability.capability_id}.v{capability.version}.json"
+    _validate_id(capability.capability_id)
+    filename = f"{capability.capability_id}.v{capability.version}.json"
+    path = _safe_path(filename)
     path.write_text(capability.model_dump_json(indent=2))
     return path
 
 
 def load(capability_id: str, version: int | None = None) -> Capability:
+    _validate_id(capability_id)
+
     if version is not None:
-        path = ARTIFACT_DIR / f"{capability_id}.v{version}.json"
+        filename = f"{capability_id}.v{version}.json"
+        path = _safe_path(filename)
         return Capability.model_validate_json(path.read_text())
 
-    candidates = sorted(ARTIFACT_DIR.glob(f"{capability_id}.v*.json"))
+    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+    candidates = list(ARTIFACT_DIR.glob(f"{capability_id}.v*.json"))
     if not candidates:
         raise FileNotFoundError(f"No artifact found for {capability_id}")
-    return Capability.model_validate_json(candidates[-1].read_text())
+
+    def version_num(p: Path) -> int:
+        match = re.search(r"\.v(\d+)\.json$", p.name)
+        return int(match.group(1)) if match else -1
+
+    latest = max(candidates, key=version_num)
+    return Capability.model_validate_json(latest.read_text())

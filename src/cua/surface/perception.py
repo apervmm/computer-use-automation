@@ -27,16 +27,21 @@ def snapshot(session: BrowserSession, screenshot_path: str | None = None) -> Pag
             continue
         seen.add(key)
 
+
+        fallbacks = [ElementRef(strategy=LocatorStrategy.ROLE_NAME, value=name, role=role)]
+
+
+        if role in ("link", "button"):
+            fallbacks.append(ElementRef(strategy=LocatorStrategy.TEXT, value=name))
+
         ref = ElementRef(
-            strategy=LocatorStrategy.ROLE_NAME,
+            strategy=LocatorStrategy.CSS,
             value=css,
             role=role,
-            fallbacks=[
-                ElementRef(strategy=LocatorStrategy.ROLE_NAME, value=name, role=role),
-                ElementRef(strategy=LocatorStrategy.TEXT, value=name),
-
-            ],
+            fallbacks=fallbacks
         )
+
+        
         elements.append(InteractiveElement(
             ref=ref,
             role=role,

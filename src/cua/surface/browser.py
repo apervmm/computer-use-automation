@@ -27,26 +27,27 @@ class BrowserSession:
     # esolving a locator descriptor to a live locator
     def _resolve(self, ref: ElementRef):
         candidates = [ref] + ref.fallbacks
-        last_error = None
+        errors = []
         for candidate in candidates:
             try:
                 loc = self._to_playwright_locator(candidate)
                 loc.wait_for(state="visible", timeout=3000)
                 return loc
             except Exception as e:
-                last_error = e
+                errors.append(f"{candidate.strategy.value}='{candidate.value}': {type(e).__name__}: {e}")
                 continue
-        raise RuntimeError(f"No locator strategy matched for {ref}: {last_error}")
+        detail = " | ".join(errors)
+        raise RuntimeError(f"No locator strategy matched. Attempts: {detail}")
 
     def _to_playwright_locator(self, ref: ElementRef):
         if ref.strategy == LocatorStrategy.ROLE_NAME:
-            return self.page.get_by_role(ref.role, name=ref.value, exact=False)
+            return self.page.get_by_role(ref.role, name=ref.value, exact=False).first
         if ref.strategy == LocatorStrategy.CSS:
-            return self.page.locator(ref.value)
+            return self.page.locator(ref.value).first
         if ref.strategy == LocatorStrategy.TEXT:
-            return self.page.get_by_text(ref.value, exact=False)
+            return self.page.get_by_text(ref.value, exact=False).first
         if ref.strategy == LocatorStrategy.XPATH:
-            return self.page.locator(f"xpath={ref.value}")
+            return self.page.locator(f"xpath={ref.value}").first
         raise ValueError(f"Unknown strategy {ref.strategy}")
 
 
@@ -67,7 +68,7 @@ class BrowserSession:
             loc = self._resolve(ref)
             loc.fill("", timeout=5000)
             loc.fill(text, timeout=5000)
-            
+
             return ActionResult(
                 True, 
                 "type",

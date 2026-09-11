@@ -39,6 +39,7 @@ class BrowserSession:
         detail = " | ".join(errors)
         raise RuntimeError(f"No locator strategy matched. Attempts: {detail}")
 
+
     def _to_playwright_locator(self, ref: ElementRef):
         if ref.strategy == LocatorStrategy.ROLE_NAME:
             return self.page.get_by_role(ref.role, name=ref.value, exact=False).first

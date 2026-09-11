@@ -1,2 +1,11 @@
-.venv
+.venv/
+__pycache__/
+*.pyc
 .env
+evidence/*/
+!evidence/.gitkeep
+artifacts/*.json
+!artifacts/.gitkeep
+.pytest_cache/
+/config/*
+/scripts/*

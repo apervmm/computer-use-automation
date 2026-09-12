@@ -3,7 +3,7 @@ from pathlib import Path
 
 from cua.surface.browser import BrowserSession
 from cua.surface.perception import snapshot
-from cua.surface.types import PageState
+from cua.surface.types import PageState, ElementRef
 
 from .llm_client import LLMClient
 from .prompts import SYSTEM_PROMPT, TOOLS
@@ -18,6 +18,7 @@ class TranscriptStep:
     success: bool
     detail: str
     screenshot_path: str | None = None
+    resolved_ref: ElementRef | None = None 
 
 
 @dataclass
@@ -61,12 +62,19 @@ class AgentLoop:
                     step_num, state.url, "done", tool_use.input, True, "goal completed"))
                 return AgentRunResult(goal, True, "goal_met", transcript, outputs)
 
-            result_text, state = self._execute(tool_use, state, step_num)
+            result_text, state, ref= self._execute(tool_use, state, step_num)
 
             success = "ERROR" not in result_text
             transcript.append(TranscriptStep(
-                step_num, state.url, tool_use.name, tool_use.input, success, result_text,
-                screenshot_path=f"{self.evidence_dir}/step_{step_num}.png"))
+                step_num, 
+                state.url, 
+                tool_use.name, 
+                tool_use.input, 
+                success, 
+                result_text,
+                screenshot_path=f"{self.evidence_dir}/step_{step_num}.png",
+                resolved_ref=ref
+            ))
 
             messages.append({
                 "role": "user",
@@ -79,35 +87,37 @@ class AgentLoop:
 
         return AgentRunResult(goal, False, "max_steps_exceeded", transcript, outputs)
 
-    def _execute(self, tool_use, state: PageState, step_num: int) -> tuple[str, PageState]:
-        """Run one tool call against the browser, return (result text for LLM, new state)."""
+    def _execute(
+        self, 
+        tool_use, 
+        state: PageState, 
+        step_num: int
+    ) -> tuple[str, PageState, ElementRef | None]:
         name, inp = tool_use.name, tool_use.input
 
         if name == "click":
             ref = state.find_ref(inp["element_name"], inp.get("role"))
             if ref is None:
-                return f"ERROR: no element named '{inp['element_name']}' found on this page.", state
+                return f"ERROR: no element named '{inp['element_name']}' found on this page.",  state, None
             result = self.session.click(ref, description=inp["element_name"])
-
         elif name == "type_text":
             ref = state.find_ref(inp["element_name"], "textbox")
             if ref is None:
-                return f"ERROR: no textbox named '{inp['element_name']}' found on this page.", state
+                return f"ERROR: no textbox named '{inp['element_name']}' found on this page.",  state, None
             result = self.session.type_text(ref, inp["text"], description=inp["element_name"])
-
         elif name == "navigate":
+            ref = None
             result = self.session.goto(inp["url"])
-
         elif name == "read":
-            return f"Recorded {inp['label']} = {inp['value']}. No page change.", state
-
+            return f"Recorded {inp['label']} = {inp['value']}. No page change.",  state, None
         else:
-            return f"ERROR: unknown tool '{name}'.", state
+            return f"ERROR: unknown tool '{name}'.", state, None
 
         new_state = snapshot(self.session, screenshot_path=f"{self.evidence_dir}/step_{step_num}.png")
         if not result.success:
-            return f"ERROR: {name} failed — {result.error}", new_state
-        return f"{name} succeeded. New page: {self._observation_text(None, new_state, include_goal=False)}", new_state
+            return f"ERROR: {name} failed — {result.error}", new_state, ref
+        return f"{name} succeeded. New page: {self._observation_text(None, new_state, include_goal=False)}", new_state, ref
+
 
     def _observation_text(self, goal: str | None, state: PageState, include_goal: bool = True) -> str:
         elements = "\n".join(

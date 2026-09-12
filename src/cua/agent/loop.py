@@ -87,7 +87,12 @@ class AgentLoop:
 
         return AgentRunResult(goal, False, "max_steps_exceeded", transcript, outputs)
 
-    def _execute(self, tool_use, state: PageState, step_num: int) -> tuple[str, PageState]:
+    def _execute(
+        self, 
+        tool_use, 
+        state: PageState, 
+        step_num: int
+    ) -> tuple[str, PageState, ElementRef | None]:
         name, inp = tool_use.name, tool_use.input
 
         if name == "click":
@@ -101,6 +106,7 @@ class AgentLoop:
                 return f"ERROR: no textbox named '{inp['element_name']}' found on this page.",  state, None
             result = self.session.type_text(ref, inp["text"], description=inp["element_name"])
         elif name == "navigate":
+            ref = None
             result = self.session.goto(inp["url"])
         elif name == "read":
             return f"Recorded {inp['label']} = {inp['value']}. No page change.",  state, None

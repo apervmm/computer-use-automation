@@ -8,3 +8,9 @@ allowed_actions:
   - navigate
   - read
 blocked_actions: [] 
+
+risky_capability_patterns:
+  - "*.transfer_funds"
+  - "*.bill_pay"
+  - "*.open_new_account"
+  - "*.request_loan"

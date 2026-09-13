@@ -52,10 +52,10 @@ def redact_any(obj, sensitive_values: set[str] | None = None):
     return obj
 
 
-# def redact(text: str) -> str:
-#     for pattern, replacement in _PATTERNS:
-#         text = pattern.sub(replacement, text)
-#     return text
+def redact(text: str) -> str:
+    for pattern, replacement in _PATTERNS:
+        text = pattern.sub(replacement, text)
+    return text
 
 
 def redact_dict(d: dict, sensitive_keys: set[str] = frozenset({"password", "ssn", "pin"})) -> dict:

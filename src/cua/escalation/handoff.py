@@ -2,6 +2,9 @@
 from enum import Enum
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
+from pathlib import Path
+
+from cua.surface.browser import BrowserSession
 
 
 
@@ -18,6 +21,7 @@ class EscalationRequest:
     current_step: int
     current_url: str
     detail: str
+    screenshot_path: str | None = None
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -35,3 +39,30 @@ class HandoffState:
     def record_human_action(self, description: str):
         self.human_actions_log.append(description)
 
+
+
+
+def raise_escalation(
+    session: BrowserSession,
+    state: HandoffState,
+    reason: EscalationReason,
+    capability_or_goal: str,
+    detail: str, 
+    current_step: int | None = None,
+    evidence_dir: str = "evidence/escalations",
+) -> EscalationRequest:
+    Path(evidence_dir).mkdir(parents=True, exist_ok=True)
+    screenshot_path = f"{evidence_dir}/escalation_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.png"
+    session.screenshot(screenshot_path)
+
+
+    state.transfer_to_human()
+
+    return EscalationRequest(
+        reason=reason,
+        capability_or_goal=capability_or_goal,
+        current_step=current_step,
+        current_url=session.page.url,
+        detail=detail,
+        screenshot_path=screenshot_path,
+    )

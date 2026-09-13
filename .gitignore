@@ -2,10 +2,9 @@
 __pycache__/
 *.pyc
 .env
-evidence/*/
-!evidence/.gitkeep
 artifacts/*.json
 !artifacts/.gitkeep
+!artifacts/parabank.login.v*.json
 .pytest_cache/
 /config/*
 !/config/allowlist.yaml

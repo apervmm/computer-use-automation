@@ -43,10 +43,17 @@ def _build_steps(transcript: list[TranscriptStep], param_map: dict[str, str]) ->
     step_num = 1
 
     for t in transcript:
-        if not t.success or t.tool_name in ("read", "done"):
+        if not t.success or t.tool_name == "done":
             continue
 
-        if t.tool_name == "click":
+        if t.tool_name == "read":
+            steps.append(Step(
+                step_num=step_num, action=StepAction.READ,
+                target=t.resolved_ref, # None if the LLM didn't name an element
+                read_label=t.tool_input.get("label"),
+                description=f"Read '{t.tool_input.get('label')}'",
+            ))
+        elif t.tool_name == "click":
             steps.append(Step(
                 step_num=step_num,
                 action=StepAction.CLICK,

@@ -57,3 +57,4 @@ class ActionResult:
     target_description: str         # for logs
     error: Optional[str] = None
     duration_ms: int = 0
+    value: Optional[str] = None 

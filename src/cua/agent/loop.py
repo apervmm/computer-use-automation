@@ -109,7 +109,11 @@ class AgentLoop:
             ref = None
             result = self.session.goto(inp["url"])
         elif name == "read":
-            return f"Recorded {inp['label']} = {inp['value']}. No page change.",  state, None
+            ref = None
+            element_name = inp.get("element_name")
+            if element_name:
+                ref = state.find_ref(element_name)
+            return f"Recorded {inp['label']} = {inp['value']}.", state, ref
         else:
             return f"ERROR: unknown tool '{name}'.", state, None
 

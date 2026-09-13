@@ -50,6 +50,16 @@ class BrowserSession:
         if ref.strategy == LocatorStrategy.XPATH:
             return self.page.locator(f"xpath={ref.value}").first
         raise ValueError(f"Unknown strategy {ref.strategy}")
+    
+
+    def read_text(self, ref: ElementRef, description: str = "") -> ActionResult:
+        start = time.time()
+        try:
+            text = self._resolve(ref).inner_text(timeout=3000)
+            return ActionResult(True, "read", description or ref.value,
+                                duration_ms=int((time.time() - start) * 1000), value=text.strip())
+        except Exception as e:
+            return ActionResult(False, "read", description or ref.value, error=str(e))
 
 
     #  actions 

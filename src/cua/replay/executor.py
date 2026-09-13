@@ -13,7 +13,20 @@ def replay(session: BrowserSession, capability: Capability, inputs: dict) -> Rep
     """
     _validate_inputs(capability, inputs)
 
-    session.goto(capability.entry_url)
+    nav_result = session.goto(capability.entry_url)
+
+    if not nav_result.success:
+        return ReplayResult(
+            status=ReplayStatus.FAILURE,
+            capability_id=capability.capability_id,
+            failed_step=0,
+            expected=f"navigate to {capability.entry_url}",
+            observed=nav_result.error,
+            error=f"Failed to reach entry URL: {nav_result.error}",
+        )
+
+    read_values: dict[str, str] = {}
+
 
     for step in capability.steps:
         value = _substitute(step.value, inputs) if step.value else None
@@ -24,6 +37,13 @@ def replay(session: BrowserSession, capability: Capability, inputs: dict) -> Rep
             result = session.click(step.target, description=step.description)
         elif step.action == StepAction.TYPE_TEXT:
             result = session.type_text(step.target, value, description=step.description)
+        elif step.action == StepAction.READ:
+            if step.target is None:
+                continue 
+            result = session.read_text(step.target, description=step.description)
+            if result.success:
+                read_values[step.read_label] = result.value
+            continue 
         else:
             continue  # READ steps don't act on the browser
 
@@ -44,7 +64,7 @@ def replay(session: BrowserSession, capability: Capability, inputs: dict) -> Rep
                 error=f"Step {step.step_num} ({step.action}) failed: {result.error}",
             )
         
-    if capability.checkpoint and not _checkpoint_met(session, capability.checkpoint):
+    if capability.checkpoint and not _wait_for_checkpoint(session, capability.checkpoint):
         outcome = _check_outcomes(session, capability.outcome_rules)
         if outcome:
             return ReplayResult(
@@ -61,7 +81,7 @@ def replay(session: BrowserSession, capability: Capability, inputs: dict) -> Rep
             error="Checkpoint not met and no matching business outcome found.",
         )
 
-    outputs = _extract_outputs(session, capability)
+    outputs = _extract_outputs(capability, read_values)
     return ReplayResult(status=ReplayStatus.SUCCESS, capability_id=capability.capability_id, outputs=outputs)
 
 
@@ -92,7 +112,7 @@ def _checkpoint_met(session: BrowserSession, checkpoint: Checkpoint) -> bool:
 
 
 def _check_outcomes(session: BrowserSession, rules: list[OutcomeRule]) -> str | None:
-    session.page.wait_for_timeout(500)  
+    session.page.wait_for_timeout(500)
     page_text = session.page.inner_text("body")
     for rule in rules:
         if rule.kind == "text_visible" and rule.expected in page_text:
@@ -102,13 +122,26 @@ def _check_outcomes(session: BrowserSession, rules: list[OutcomeRule]) -> str | 
     return None
 
 
-def _extract_outputs(session: BrowserSession, capability: Capability) -> dict:
-    page_text = session.page.inner_text("body")
+def _extract_outputs(capability: Capability, read_values: dict) -> dict:
     outputs = {}
     for field in capability.outputs:
-        if "succeed" in field.name.lower() or "success" in field.name.lower():
-            outputs[field.name] = "true" 
+        if field.source_label in read_values:
+            outputs[field.name] = read_values[field.source_label]
+        elif "succeed" in field.name.lower() or "success" in field.name.lower():
+            outputs[field.name] = "true"
         else:
-            welcome_line = next((l for l in page_text.splitlines() if "Welcome" in l), None)
-            outputs[field.name] = welcome_line or page_text[:200]
+            outputs[field.name] = None
     return outputs
+
+
+def _wait_for_checkpoint(session: BrowserSession, checkpoint: Checkpoint,
+                          timeout_ms: int = 5000, interval_ms: int = 250) -> bool:
+    """Poll instead of a single point-in-time check — async redirects/renders
+    can legitimately take a moment after the triggering action completes."""
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if _checkpoint_met(session, checkpoint):
+            return True
+        session.page.wait_for_timeout(interval_ms)
+        elapsed += interval_ms
+    return _checkpoint_met(session, checkpoint)

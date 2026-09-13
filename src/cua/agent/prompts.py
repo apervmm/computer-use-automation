@@ -55,6 +55,10 @@ TOOLS = [
             "properties": {
                 "label": {"type": "string"},
                 "value": {"type": "string"},
+                "element_name": {
+                        "type": "string", 
+                        "description": "Optional: the visible element this value was read from, if any"
+                    },
             },
             "required": ["label", "value"],
         },

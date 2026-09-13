@@ -7,6 +7,7 @@ evidence/*/
 artifacts/*.json
 !artifacts/.gitkeep
 .pytest_cache/
-/config/*
+# /config/*
 /scripts/*
 REPORT.md
+

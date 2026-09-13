@@ -1,0 +1,10 @@
+allowed_domains:
+  - parabank.parasoft.com
+allowed_routes:
+  - "/parabank/*"
+allowed_actions:
+  - click
+  - type
+  - navigate
+  - read
+blocked_actions: [] 

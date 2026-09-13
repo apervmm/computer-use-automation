@@ -4,23 +4,28 @@ from playwright.sync_api import sync_playwright, Page, Browser, TimeoutError as 
 
 from .types import ActionResult, ElementRef, LocatorStrategy
 
+from cua.safety.allowlist import Allowlist, PolicyViolation
+
 
 class BrowserSession:
 
-    def __init__(self, headless: bool = False):
+    def __init__(self, headless: bool = False, allowlist: Allowlist | None = None):
         self._pw = sync_playwright().start()
         self.browser: Browser = self._pw.chromium.launch(headless=headless)
         self.page: Page = self.browser.new_page()
+        self.allowlist = allowlist or Allowlist()
 
 
     # navigation
     def goto(self, url: str) -> ActionResult:
+        self.allowlist.check_action("navigate", url=url)
         start = time.time()
         try:
             self.page.goto(url, wait_until="domcontentloaded", timeout=15000)
-            return ActionResult(True, "navigate", url,
-                                 duration_ms=int((time.time() - start) * 1000))
+            return ActionResult(True, "navigate",  url, duration_ms=int((time.time() - start) * 1000))
         except PWTimeout as e:
+            return ActionResult(False, "navigate", url, error=str(e))
+        except PolicyViolation as e:
             return ActionResult(False, "navigate", url, error=str(e))
 
 
@@ -53,40 +58,46 @@ class BrowserSession:
     
 
     def read_text(self, ref: ElementRef, description: str = "") -> ActionResult:
+        try:
+            self.allowlist.check_action("read", url=self.page.url)
+        except PolicyViolation as e:
+            return ActionResult(False, "read", description or ref.value, error=str(e))
+
         start = time.time()
         try:
             text = self._resolve(ref).inner_text(timeout=3000)
-            return ActionResult(True, "read", description or ref.value,
-                                duration_ms=int((time.time() - start) * 1000), value=text.strip())
+            return ActionResult(True, "read", description or ref.value, duration_ms=int((time.time() - start) * 1000), value=text.strip())
         except Exception as e:
             return ActionResult(False, "read", description or ref.value, error=str(e))
 
 
     #  actions 
     def click(self, ref: ElementRef, description: str = "") -> ActionResult:
+        try:
+            self.allowlist.check_action("click", url=self.page.url)
+        except PolicyViolation as e:
+            return ActionResult(False, "click", description or ref.value, error=str(e))
+        
         start = time.time()
         try:
             self._resolve(ref).click(timeout=5000)
-            return ActionResult(True, "click", description or ref.value,
-                                 duration_ms=int((time.time() - start) * 1000))
+            return ActionResult(True, "click", description or ref.value, duration_ms=int((time.time() - start) * 1000))
         except Exception as e:
             return ActionResult(False, "click", description or ref.value, error=str(e))
 
 
     def type_text(self, ref: ElementRef, text: str, description: str = "") -> ActionResult:
+        try:
+            self.allowlist.check_action("type_text", url=self.page.url)
+        except PolicyViolation as e:
+            return ActionResult(False, "type", description or ref.value, error=str(e))
+        
         start = time.time()
         try:
             loc = self._resolve(ref)
             loc.fill("", timeout=5000)
             loc.fill(text, timeout=5000)
-
-            return ActionResult(
-                True, 
-                "type",
-                description or ref.value, 
-                duration_ms=int((time.time() - start) * 1000)
-            )
-        
+            return ActionResult(True, "type", description or ref.value, duration_ms=int((time.time() - start) * 1000))
         except Exception as e:
             return ActionResult(False, "type", description or ref.value, error=str(e))
 

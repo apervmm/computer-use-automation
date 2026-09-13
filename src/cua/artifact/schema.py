@@ -54,6 +54,9 @@ class OutcomeRule(BaseModel):
     expected: str
     description: str = ""                        
 
+class RiskLevel(str, Enum):
+    SAFE = "safe"
+    RISKY = "risky"
 
 class Capability(BaseModel):
     capability_id: str                     
@@ -70,4 +73,6 @@ class Capability(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     source: Literal["llm_discovery"] = "llm_discovery"
     outcome_rules: list[OutcomeRule] = Field(default_factory=list)
+
+    risk_level: RiskLevel = RiskLevel.SAFE
 

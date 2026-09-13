@@ -17,7 +17,7 @@ def record(
     steps = _build_steps(run_result.transcript, param_map)
 
     inputs = [
-        InputParam(name=name, example=literal)
+        InputParam(name=name, example="[REDACTED]" if name.lower() in ("password", "pin", "ssn") else literal)
         for literal, name in param_map.items()
     ]
 

@@ -4,7 +4,7 @@ allowed_routes:
   - "/parabank/*"
 allowed_actions:
   - click
-  - type
+  - type_text
   - navigate
   - read
 blocked_actions: [] 

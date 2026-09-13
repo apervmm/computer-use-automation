@@ -13,9 +13,8 @@ def _timestamp() -> str:
 
 def _to_jsonable(obj):
     """
-        Recursively converts dataclasses/enums into plain JSON-serializable data
+        Recursively converts dataclasses into plain JSON-serializable data
     """
-    
     if is_dataclass(obj) and not isinstance(obj, type):
         return {k: _to_jsonable(v) for k, v in asdict(obj).items()}
     if hasattr(obj, "value") and hasattr(obj, "name") and not isinstance(obj, (str, int)):
@@ -27,10 +26,9 @@ def _to_jsonable(obj):
     return obj
 
 
-def log_discovery_run(result: AgentRunResult, evidence_dir: str) -> Path:
+def log_discovery(result: AgentRunResult, evidence_dir: str) -> Path:
     """
-    Writes a structured summary of a discovery run alongside the
-    screenshots AgentLoop already saved into evidence_dir.
+        Writes a structured summary of a discovery run alongside the screenshots AgentLoop already saved into evidence_dir
     """
     out_dir = Path(evidence_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -50,8 +48,10 @@ def log_discovery_run(result: AgentRunResult, evidence_dir: str) -> Path:
     return path
 
 
-def log_replay_run(result: ReplayResult, evidence_dir: str, inputs: dict) -> Path:
-    """Writes a structured summary of a single replay invocation."""
+def log_replay(result: ReplayResult, evidence_dir: str, inputs: dict) -> Path:
+    """
+        Writes a structured summary of a single replay invocation
+    """
     out_dir = Path(evidence_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 

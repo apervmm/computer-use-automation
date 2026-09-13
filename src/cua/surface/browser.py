@@ -18,10 +18,11 @@ class BrowserSession:
 
     # navigation
     def goto(self, url: str) -> ActionResult:
-        self.allowlist.check_action("navigate", url=url)
         start = time.time()
         try:
+            self.allowlist.check_action("navigate", url=url)
             self.page.goto(url, wait_until="domcontentloaded", timeout=15000)
+            self.allowlist.check_url(self.page.url)
             return ActionResult(True, "navigate",  url, duration_ms=int((time.time() - start) * 1000))
         except PWTimeout as e:
             return ActionResult(False, "navigate", url, error=str(e))

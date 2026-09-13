@@ -19,3 +19,19 @@ class EscalationRequest:
     current_url: str
     detail: str
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class HandoffState:
+    def __init__(self):
+        self.automation_in_control = True
+        self.human_actions_log: list[str] = []
+
+    def transfer_to_human(self):
+        self.automation_in_control = False
+
+    def resume_automation(self):
+        self.automation_in_control = True
+
+    def record_human_action(self, description: str):
+        self.human_actions_log.append(description)
+

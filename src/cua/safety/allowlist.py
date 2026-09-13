@@ -3,7 +3,9 @@ import yaml
 from pathlib import Path
 from urllib.parse import urlparse
 
-_CONFIG_PATH = Path("config/allowlist.yaml")
+
+
+_CONFIG_PATH = Path(__file__).resolve().parents[3] / "config" / "allowlist.yaml"
 
 
 class PolicyViolation(Exception):
@@ -12,6 +14,7 @@ class PolicyViolation(Exception):
 
 class Allowlist:
     def __init__(self, config_path: Path = _CONFIG_PATH):
+        path = config_path or _CONFIG_PATH
         config = yaml.safe_load(config_path.read_text())
         self.allowed_domains = config.get("allowed_domains", [])
         self.allowed_routes = config.get("allowed_routes", [])
@@ -37,9 +40,7 @@ class Allowlist:
             raise PolicyViolation(f"Domain '{domain}' is not in the allowlist.")
         path = parsed.path or "/"
         if self.allowed_routes and not any(
-            fnmatch.fnmatch(path, pattern.replace("/parabank", "") or "/*")
-            or fnmatch.fnmatch(parsed.path, pattern)
-            for pattern in self.allowed_routes
+            fnmatch.fnmatch(path, pattern) for pattern in self.allowed_routes
         ):
             raise PolicyViolation(f"Route '{path}' is not in the allowed routes.")
 

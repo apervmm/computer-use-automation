@@ -8,5 +8,7 @@ artifacts/*.json
 !artifacts/.gitkeep
 .pytest_cache/
 /config/*
+!/config/allowlist.yaml
 /scripts/*
 REPORT.md
+

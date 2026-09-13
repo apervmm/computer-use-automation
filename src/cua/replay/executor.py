@@ -1,16 +1,26 @@
 import re
 from cua.surface.browser import BrowserSession
 from cua.surface.perception import snapshot
-from cua.artifact.schema import Capability, StepAction, Checkpoint, OutcomeRule
+from cua.artifact.schema import Capability, StepAction, Checkpoint, OutcomeRule, RiskLevel
 from .outcomes import ReplayResult, ReplayStatus
 
 
-def replay(session: BrowserSession, capability: Capability, inputs: dict) -> ReplayResult:
+def replay(session: BrowserSession, capability: Capability, inputs: dict, confirmed: bool = False) -> ReplayResult:
     """
     Execute a saved Capability deterministically, using the provided inputs to fill in any parameterized values.
     
     Checkpoint miss => checks declared outcome_rules before concluding it's a hard failure.
     """
+
+    if capability.risk_level == RiskLevel.RISKY and not confirmed:
+        return ReplayResult(
+            status=ReplayStatus.FAILURE,
+            capability_id=capability.capability_id,
+            error=(
+                f"'{capability.capability_id}' is marked risky/irreversible and requires "
+                "explicit confirmation to replay unattended (pass confirmed=True)."
+            ),
+        )
     _validate_inputs(capability, inputs)
 
     nav_result = session.goto(capability.entry_url)
@@ -134,8 +144,12 @@ def _extract_outputs(capability: Capability, read_values: dict) -> dict:
     return outputs
 
 
-def _wait_for_checkpoint(session: BrowserSession, checkpoint: Checkpoint,
-                          timeout_ms: int = 5000, interval_ms: int = 250) -> bool:
+def _wait_for_checkpoint(
+        session: BrowserSession, 
+        checkpoint: Checkpoint, 
+        timeout_ms: int = 5000, 
+        interval_ms: int = 250
+    ) -> bool:
     """Poll instead of a single point-in-time check — async redirects/renders
     can legitimately take a moment after the triggering action completes."""
     elapsed = 0

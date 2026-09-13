@@ -1,0 +1,16 @@
+allowed_domains:
+  - parabank.parasoft.com
+allowed_routes:
+  - "/parabank/*"
+allowed_actions:
+  - click
+  - type_text
+  - navigate
+  - read
+blocked_actions: [] 
+
+risky_capability_patterns:
+  - "*.transfer_funds"
+  - "*.bill_pay"
+  - "*.open_new_account"
+  - "*.request_loan"

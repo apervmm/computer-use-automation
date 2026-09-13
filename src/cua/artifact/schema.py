@@ -45,7 +45,14 @@ class Step(BaseModel):
 
 class Checkpoint(BaseModel):
     kind: Literal["url_contains", "element_visible", "text_visible"]
-    expected: str                           
+    expected: str      
+
+
+class OutcomeRule(BaseModel):
+    name: str    # ex invalid credentials
+    kind: Literal["text_visible", "url_contains"]
+    expected: str
+    description: str = ""                        
 
 
 class Capability(BaseModel):
@@ -61,4 +68,6 @@ class Capability(BaseModel):
     checkpoint: Optional[Checkpoint] = None
 
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    source: Literal["llm_discovery"] = "llm_discovery"   
+    source: Literal["llm_discovery"] = "llm_discovery"
+    outcome_rules: list[OutcomeRule] = Field(default_factory=list)
+

@@ -1,5 +1,8 @@
 from cua.agent.loop import AgentRunResult, TranscriptStep
-from .schema import Capability, Step, StepAction, InputParam, OutputField, Checkpoint
+from .schema import Capability, Step, StepAction, InputParam, OutputField, Checkpoint, RiskLevel
+from cua.safety.allowlist import Allowlist
+from cua.safety.redaction import redact
+
 
 
 def record(
@@ -10,14 +13,19 @@ def record(
     output_keys: list[str],
     checkpoint: Checkpoint,
     description: str = "",
+    allowlist: Allowlist | None = None,
 ) -> Capability:
     if not run_result.success:
         raise ValueError("Cannot record a capability from a failed run.")
 
+    allowlist = allowlist or Allowlist()
     steps = _build_steps(run_result.transcript, param_map)
 
     inputs = [
-        InputParam(name=name, example="[REDACTED]" if name.lower() in ("password", "pin", "ssn") else literal)
+        InputParam(
+            name=name, 
+            example="[REDACTED]" if name.lower() in ("password", "pin", "ssn") else literal
+        )
         for literal, name in param_map.items()
     ]
 
@@ -27,6 +35,8 @@ def record(
         if key in run_result.outputs
     ]
 
+    risk_level = RiskLevel.RISKY if allowlist.is_risky(capability_id) else RiskLevel.SAFE
+
     return Capability(
         capability_id=capability_id,
         description=description or f"Recorded capability for goal: {run_result.goal}",
@@ -35,6 +45,7 @@ def record(
         outputs=outputs,
         steps=steps,
         checkpoint=checkpoint,
+        risk_level=risk_level,
     )
 
 

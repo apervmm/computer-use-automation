@@ -5,6 +5,7 @@ from pathlib import Path
 
 from cua.agent.loop import AgentRunResult
 from cua.replay.outcomes import ReplayResult
+from cua.safety.redaction import redact_any
 
 
 def _timestamp() -> str:
@@ -26,7 +27,7 @@ def _to_jsonable(obj):
     return obj
 
 
-def log_discovery(result: AgentRunResult, evidence_dir: str) -> Path:
+def log_discovery(result: AgentRunResult, evidence_dir: str, sensitive_values: list[str] | None = None) -> Path:
     """
         Writes a structured summary of a discovery run alongside the screenshots AgentLoop already saved into evidence_dir
     """
@@ -42,6 +43,8 @@ def log_discovery(result: AgentRunResult, evidence_dir: str) -> Path:
         "outputs": result.outputs,
         "transcript": [_to_jsonable(step) for step in result.transcript],
     }
+
+    summary = redact_any(summary, sensitive_values=set(sensitive_values or []))
 
     path = out_dir / "result.json"
     path.write_text(json.dumps(summary, indent=2))
@@ -68,6 +71,7 @@ def log_replay(result: ReplayResult, evidence_dir: str, inputs: dict) -> Path:
         "observed": result.observed,
         "error": result.error,
     }
+    summary = redact_any(summary)
 
     path = out_dir / "result.json"
     path.write_text(json.dumps(summary, indent=2))

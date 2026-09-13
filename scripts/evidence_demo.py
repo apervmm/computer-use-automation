@@ -42,7 +42,7 @@ result = agent.run(
     start_url="https://parabank.parasoft.com/parabank/index.htm",
 )
 session.close()
-log_discovery(result, discovery_dir)
+log_discovery(result, discovery_dir, sensitive_values=[TEST_PASSWORD_SUCCESS])
 print(f"[1/3] Discovery run saved to {discovery_dir}")
 
 assert result.success, f"Discovery run failed: {result.stop_reason}"

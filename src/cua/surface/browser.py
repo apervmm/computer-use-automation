@@ -15,6 +15,12 @@ class BrowserSession:
         self.page: Page = self.browser.new_page()
         self.allowlist = allowlist or Allowlist()
 
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
 
     # navigation
     def goto(self, url: str) -> ActionResult:

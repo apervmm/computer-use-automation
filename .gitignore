@@ -2,13 +2,16 @@
 __pycache__/
 *.pyc
 .env
-evidence/*/
-!evidence/.gitkeep
 artifacts/*.json
 !artifacts/.gitkeep
+!artifacts/parabank.login.v*.json
 .pytest_cache/
 /config/*
 !/config/allowlist.yaml
-/scripts/*
 REPORT.md
+/scripts/surface.py
+/scripts/test_replay.py
+/scripts/test_recorder.py
+/scripts/agent.py
+/scripts/artifact_schema.py
 

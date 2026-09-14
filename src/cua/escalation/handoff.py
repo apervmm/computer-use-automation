@@ -3,9 +3,15 @@ from enum import Enum
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from pathlib import Path
+import uuid
 
 from cua.surface.browser import BrowserSession
 
+
+
+class OperatorDecision(str, Enum):
+    RESUME = "resume"  # human stops
+    ABORT = "abort"   # human aborts
 
 
 class EscalationReason(str, Enum):
@@ -51,9 +57,16 @@ def raise_escalation(
     current_step: int | None = None,
     evidence_dir: str = "evidence/escalations",
 ) -> EscalationRequest:
-    Path(evidence_dir).mkdir(parents=True, exist_ok=True)
-    screenshot_path = f"{evidence_dir}/escalation_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.png"
-    session.screenshot(screenshot_path)
+    
+    screenshot_path = None
+
+    try:
+        Path(evidence_dir).mkdir(parents=True, exist_ok=True)
+        screenshot_path = f"{evidence_dir}/escalation_{uuid.uuid4().hex}.png"
+        session.screenshot(screenshot_path)
+    except Exception:
+        screenshot_path = None  
+
 
 
     state.transfer_to_human()

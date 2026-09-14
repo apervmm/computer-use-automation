@@ -2,6 +2,7 @@ import re
 from cua.surface.browser import BrowserSession
 from cua.surface.perception import snapshot
 from cua.artifact.schema import Capability, StepAction, Checkpoint, OutcomeRule, RiskLevel
+from cua.escalation.handoff import raise_escalation, EscalationReason, HandoffState, OperatorDecision
 from .outcomes import ReplayResult, ReplayStatus
 
 
@@ -17,17 +18,26 @@ def replay(
     
     Checkpoint miss => checks declared outcome_rules before concluding it's a hard failure.
     """
+    handoff_state = HandoffState()
 
     if capability.risk_level == RiskLevel.RISKY and not confirmed:
         if on_escalation:
-            from cua.escalation.handoff import raise_escalation, EscalationReason, HandoffState
-            state = HandoffState()
             req = raise_escalation(
-                session, state, EscalationReason.RISKY_CONFIRMATION,
+                session, 
+                handoff_state, 
+                EscalationReason.RISKY_CONFIRMATION,
                 capability.capability_id,
                 "Risky capability requires explicit confirmation before unattended replay.",
             )
-            on_escalation(req)
+
+            decision = on_escalation(req, handoff_state)
+
+            if decision == OperatorDecision.ABORT:
+                return ReplayResult(
+                    status=ReplayStatus.FAILURE, 
+                    capability_id=capability.capability_id,
+                    error="Replay aborted by operator during risky-confirmation escalation."
+                )
 
         return ReplayResult(
             status=ReplayStatus.FAILURE,
@@ -81,16 +91,16 @@ def replay(
                     outcome_name=outcome,
                 )
             if on_escalation:
-                from cua.escalation.handoff import raise_escalation, EscalationReason, HandoffState
-                state = HandoffState()
                 req = raise_escalation(
-                    session, state, EscalationReason.REPLAY_FAILURE,
+                    session, 
+                    handoff_state, 
+                    EscalationReason.REPLAY_FAILURE,
                     capability.capability_id,
                     f"Step {step.step_num} ({step.action}) failed: {result.error}",
                     current_step=step.step_num,
                 )
-                on_escalation(req)
-                
+                decision = on_escalation(req, handoff_state)
+
             return ReplayResult(
                 status=ReplayStatus.FAILURE,
                 capability_id=capability.capability_id,

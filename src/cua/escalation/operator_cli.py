@@ -1,7 +1,7 @@
 from .handoff import EscalationRequest, HandoffState
+from .handoff import OperatorDecision
 
-
-def to_operator(request: EscalationRequest, state: HandoffState) -> None:
+def to_operator(request: EscalationRequest, state: HandoffState, evidence_dir: str = "evidence/escalations") -> OperatorDecision:
     print(f"Reason: {request.reason.value}")
     print(f"Task: {request.capability_or_goal}")
     print(f"Step:  {request.current_step}")
@@ -15,3 +15,6 @@ def to_operator(request: EscalationRequest, state: HandoffState) -> None:
     
     state.resume_automation()
     print("Resuming...\n")
+
+
+    return OperatorDecision.RESUME

@@ -19,5 +19,6 @@ with BrowserSession(headless=False) as session:
         session, 
         capability, 
         {"username": f"{TEST_USERNAME_SUCCESS}", "password": f"{TEST_PASSWORD_SUCCESS}"},
-        on_escalation=lambda req: to_operator(req, __import__("cua.escalation.handoff", fromlist=["HandoffState"]).HandoffState()))
+        on_escalation=to_operator,
+    )
     # print(result)

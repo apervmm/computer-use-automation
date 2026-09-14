@@ -9,6 +9,7 @@ artifacts/*.json
 /config/*
 !/config/allowlist.yaml
 REPORT.md
+README.md
 /scripts/surface.py
 /scripts/test_replay.py
 /scripts/test_recorder.py
